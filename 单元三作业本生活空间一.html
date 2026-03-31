@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生态平衡 - 互动练习</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 for lively popups -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Canvas Confetti for celebrations -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Pinyin Pro for dynamic pinyin generation of wrong answers -->
+    <script src="https://unpkg.com/pinyin-pro"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #c8e6c9 100%);
+            min-height: 100vh;
+        }
+        
+        h1, h2, h3, .title-font {
+            font-family: 'ZCOOL KuaiLe', cursive;
+        }
+
+        .input-box {
+            border: 2px dashed #4ade80;
+            background-color: #f0fdf4;
+            color: #166534;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 8px;
+            padding: 2px 8px;
+            width: 3.5rem;
+            transition: all 0.3s;
+            outline: none;
+            display: inline-block;
+            margin: 0 4px;
+        }
+
+        .input-box:focus {
+            border-color: #16a34a;
+            box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+            background-color: #fff;
+        }
+
+        .input-box.correct {
+            border: 2px solid #16a34a;
+            background-color: #dcfce7;
+            color: #15803d;
+            pointer-events: none;
+        }
+
+        .input-box.incorrect {
+            border: 2px solid #ef4444;
+            background-color: #fee2e2;
+            color: #b91c1c;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-top: 5px solid #4ade80;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Floating Hint Button */
+        #hint-btn {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            background: #f59e0b;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            cursor: pointer;
+            z-index: 50;
+            transition: all 0.3s;
+            animation: bounce 2s infinite;
+        }
+        #hint-btn:hover {
+            transform: scale(1.1);
+            background: #d97706;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-15px); }
+            60% { transform: translateY(-7px); }
+        }
+
+        .hidden-content { display: none; }
+        .text-line { margin-bottom: 0.5rem; line-height: 2; font-size: 1.125rem; }
+        .pinyin-line { color: #6b7280; font-size: 0.875rem; margin-top: -0.25rem; margin-bottom: 0.25rem; font-family: sans-serif;}
+        .en-line { color: #3b82f6; font-size: 0.95rem; margin-bottom: 0.5rem; font-style: italic;}
+    </style>
+</head>
+<body class="pb-24">
+
+    <!-- Header & Controls -->
+    <div class="container mx-auto px-4 py-8">
+        <div class="text-center mb-10">
+            <h1 class="text-5xl text-green-700 mb-4 drop-shadow-md"><i class="fas fa-leaf mr-3"></i>作业三：生活空间</h1>
+            <p class="text-xl text-gray-700 mb-6 font-medium">根据课文内容,选择适当的词语,填写在横线上。</p>
+            
+            <div class="flex justify-center gap-4 flex-wrap">
+                <button id="toggle-pinyin" class="px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white rounded-full font-bold shadow-lg transition-colors flex items-center">
+                    <i class="fas fa-language mr-2"></i> <span>Pinyin 拼音</span>
+                </button>
+                <button id="toggle-en" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-bold shadow-lg transition-colors flex items-center">
+                    <i class="fas fa-globe mr-2"></i> <span>Translate 翻译</span>
+                </button>
+                <button id="submit-all" class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white rounded-full font-bold shadow-lg transition-colors flex items-center hidden">
+                    <i class="fas fa-check-circle mr-2"></i> <span>完成并提交</span>
+                </button>
+            </div>
+            
+            <div class="mt-4 text-2xl font-bold text-orange-600 bg-orange-100 inline-block px-6 py-2 rounded-full shadow-inner">
+                得分: <span id="score-display">0</span> / 15
+            </div>
+        </div>
+
+        <h2 class="text-3xl font-bold text-center text-gray-800 mb-8 title-font">生态平衡遭到破坏的例子</h2>
+
+        <!-- Grid for 3 sections -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Card 1: Amazon -->
+            <div class="card p-6 border-t-green-500 relative" id="section-1">
+                <button class="read-btn absolute top-4 right-4 text-green-600 hover:text-green-800 transition" onclick="readSection('section-1')">
+                    <i class="fas fa-volume-up text-2xl"></i>
+                </button>
+                <h3 class="text-2xl text-green-700 mb-4 font-bold border-b-2 border-green-200 pb-2 pr-8">亚马逊雨林遭到的破坏</h3>
+                
+                <div class="content-body">
+                    <div class="text-line">时间: 从20世纪末开始</div>
+                    <div class="pinyin-line hidden-content">shí jiān: cóng 20 shì jì mò kāi shǐ</div>
+                    <div class="en-line hidden-content">Time: Starting from the end of the 20th century</div>
+
+                    <div class="text-line">国家/地区: 南美洲亚马逊河流域</div>
+                    <div class="pinyin-line hidden-content">guó jiā/dì qū: nán měi zhōu yà mǎ xùn hé liú yù</div>
+                    <div class="en-line hidden-content">Country/Region: Amazon River Basin, South America</div>
+
+                    <div class="text-line leading-loose">起因: 人们大肆 <input type="text" id="q1" class="input-box" data-ans="砍伐" maxlength="2"> 树木, 过度开发雨林。</div>
+                    <div class="pinyin-line hidden-content">qǐ yīn: rén men dà sì [kǎn fá] shù mù, guò dù kāi fā yǔ lín.</div>
+                    <div class="en-line hidden-content">Cause: People heavily cut down trees and overdeveloped the rainforest.</div>
+
+                    <div class="text-line leading-loose">结果: 这里的生态 <input type="text" id="q2" class="input-box" data-ans="平衡" maxlength="2"> 被破坏。亚马逊雨林原本生机 <input type="text" id="q3" class="input-box" data-ans="盎然" maxlength="2"> ，但是现在有不少 <input type="text" id="q4" class="input-box" data-ans="珍稀" maxlength="2"> 的树木已消失，很多动植物也失去 <input type="text" id="q5" class="input-box" data-ans="栖息" maxlength="2"> 地。</div>
+                    <div class="pinyin-line hidden-content">jié guǒ: zhè lǐ de shēng tài [píng héng] bèi pò huài. yà mǎ xùn yǔ lín yuán běn shēng jī [àng rán], dàn shì xiàn zài yǒu bù shǎo [zhēn xī] de shù mù yǐ xiāo shī, hěn duō dòng zhí wù yě shī qù [qī xī] dì.</div>
+                    <div class="en-line hidden-content">Result: The ecological balance here has been destroyed. The Amazon rainforest was originally full of life, but now many rare trees have disappeared, and many animals and plants have also lost their habitats.</div>
+
+                    <div class="text-line leading-loose">应对措施: 各国订立公约，发出呼吁：切 <input type="text" id="q6" class="input-box w-12" data-ans="勿" maxlength="1"> 忽视亚马逊雨林遭受的破坏。人们也应 <input type="text" id="q7" class="input-box" data-ans="牢记" maxlength="2"> 教训，否则一定会受到大自然的 <input type="text" id="q8" class="input-box" data-ans="惩罚" maxlength="2">。</div>
+                    <div class="pinyin-line hidden-content">yìng duì cuò shī: gè guó dìng lì gōng yuē, fā chū hū yù: qiè [wù] hū shì yà mǎ xùn yǔ lín zāo shòu de pò huài. rén men yě yīng [láo jì] jiào xùn, fǒu zé yī dìng huì shòu dào dà zì rán de [chéng fá].</div>
+                    <div class="en-line hidden-content">Countermeasures: Countries signed conventions and issued an appeal: Do not ignore the destruction of the Amazon rainforest. People should also keep the lessons firmly in mind, otherwise they will surely be punished by nature.</div>
+                </div>
+            </div>
+
+            <!-- Card 2: Rabbits -->
+            <div class="card p-6 border-t-yellow-500 relative" id="section-2">
+                <button class="read-btn absolute top-4 right-4 text-yellow-600 hover:text-yellow-800 transition" onclick="readSection('section-2')">
+                    <i class="fas fa-volume-up text-2xl"></i>
+                </button>
+                <h3 class="text-2xl text-yellow-700 mb-4 font-bold border-b-2 border-yellow-200 pb-2 pr-8">野兔泛滥</h3>
+                
+                <div class="content-body">
+                    <div class="text-line">时间: 从19世纪初开始</div>
+                    <div class="pinyin-line hidden-content">shí jiān: cóng 19 shì jì chū kāi shǐ</div>
+                    <div class="en-line hidden-content">Time: Starting from the early 19th century</div>
+
+                    <div class="text-line">国家/地区: 澳大利亚</div>
+                    <div class="pinyin-line hidden-content">guó jiā/dì qū: ào dà lì yà</div>
+                    <div class="en-line hidden-content">Country/Region: Australia</div>
+
+                    <div class="text-line leading-loose">起因: 外来人口大量 <input type="text" id="q9" class="input-box w-12" data-ans="涌" maxlength="1"> 入澳大利亚, 野兔也被大量引进。</div>
+                    <div class="pinyin-line hidden-content">qǐ yīn: wài lái rén kǒu dà liàng [yǒng] rù ào dà lì yà, yě tù yě bèi dà liàng yǐn jìn.</div>
+                    <div class="en-line hidden-content">Cause: A large number of foreign populations poured into Australia, and wild rabbits were also introduced in large numbers.</div>
+
+                    <div class="text-line leading-loose">结果: 因环境适宜, 加上没有天敌, 野兔大量 <input type="text" id="q10" class="input-box" data-ans="繁殖" maxlength="2"> , 在20世纪初期数量已超过100亿。野兔的急剧增加 <input type="text" id="q11" class="input-box w-12" data-ans="酿" maxlength="1"> 成大祸: 草地被破坏; 牛羊的 <input type="text" id="q12" class="input-box" data-ans="饲料" maxlength="2"> 来源受到影响; 生态系统遭到破坏。</div>
+                    <div class="pinyin-line hidden-content">jié guǒ: yīn huán jìng shì yí, jiā shàng méi yǒu tiān dí, yě tù dà liàng [fán zhí], zài 20 shì jì chū qī shù liàng yǐ chāo guò 100 yì. yě tù de jí jù zēng jiā [niàng] chéng dà huò: cǎo dì bèi pò huài; niú yáng de [sì liào] lái yuán shòu dào yǐng xiǎng; shēng tài xì tǒng zāo dào pò huài.</div>
+                    <div class="en-line hidden-content">Result: Due to the suitable environment and the lack of natural enemies, wild rabbits reproduced in large numbers, exceeding 10 billion in the early 20th century. The sharp increase in wild rabbits led to a disaster: grasslands were destroyed; the source of feed for cattle and sheep was affected; the ecosystem was destroyed.</div>
+
+                    <div class="text-line">应对措施: 捕杀、引入天敌、运用生物技术等。</div>
+                    <div class="pinyin-line hidden-content">yìng duì cuò shī: bǔ shā, yǐn rù tiān dí, yùn yòng shēng wù jì shù děng.</div>
+                    <div class="en-line hidden-content">Countermeasures: Culling, introducing natural enemies, using biotechnology, etc.</div>
+                </div>
+            </div>
+
+            <!-- Card 3: Snails -->
+            <div class="card p-6 border-t-red-500 relative" id="section-3">
+                <button class="read-btn absolute top-4 right-4 text-red-600 hover:text-red-800 transition" onclick="readSection('section-3')">
+                    <i class="fas fa-volume-up text-2xl"></i>
+                </button>
+                <h3 class="text-2xl text-red-700 mb-4 font-bold border-b-2 border-red-200 pb-2 pr-8">福寿螺造成严重问题</h3>
+                
+                <div class="content-body">
+                    <div class="text-line">时间: 从1980年代开始</div>
+                    <div class="pinyin-line hidden-content">shí jiān: cóng 1980 nián dài kāi shǐ</div>
+                    <div class="en-line hidden-content">Time: Starting from the 1980s</div>
+
+                    <div class="text-line">国家/地区: 中国</div>
+                    <div class="pinyin-line hidden-content">guó jiā/dì qū: zhōng guó</div>
+                    <div class="en-line hidden-content">Country/Region: China</div>
+
+                    <div class="text-line">起因: 福寿螺作为食物被引入中国。</div>
+                    <div class="pinyin-line hidden-content">qǐ yīn: fú shòu luó zuò wéi shí wù bèi yǐn rù zhōng guó.</div>
+                    <div class="en-line hidden-content">Cause: The Golden Apple Snail was introduced to China as food.</div>
+
+                    <div class="text-line leading-loose">结果: 不但没有成为餐桌上的美味 <input type="text" id="q13" class="input-box" data-ans="佳肴" maxlength="2"> , 反而在自然环境中泛滥成灾。</div>
+                    <div class="pinyin-line hidden-content">jié guǒ: bù dàn méi yǒu chéng wéi cān zhuō shàng de měi wèi [jiā yáo], fǎn ér zài zì rán huán jìng zhōng fàn làn chéng zāi.</div>
+                    <div class="en-line hidden-content">Result: Not only did it not become a delicacy on the table, but it flooded into a disaster in the natural environment.</div>
+
+                    <div class="text-line leading-loose">影响: 福寿螺 <input type="text" id="q14" class="input-box w-12" data-ans="啃" maxlength="1"> 食稻苗, 给农业生产带来影响。</div>
+                    <div class="pinyin-line hidden-content">yǐng xiǎng: fú shòu luó [kěn] shí dào miáo, gěi nóng yè shēng chǎn dài lái yǐng xiǎng.</div>
+                    <div class="en-line hidden-content">Impact: Golden Apple Snails gnaw on rice seedlings, affecting agricultural production.</div>
+
+                    <div class="text-line leading-loose">应对措施: 将福寿螺列为外来 <input type="text" id="q15" class="input-box" data-ans="入侵" maxlength="2"> 物种, 大力防治。</div>
+                    <div class="pinyin-line hidden-content">yìng duì cuò shī: jiāng fú shòu luó liè wéi wài lái [rù qīn] wù zhǒng, dà lì fáng zhì.</div>
+                    <div class="en-line hidden-content">Countermeasures: List the Golden Apple Snail as an invasive alien species and vigorously prevent and control it.</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Floating Hint Button -->
+    <button id="hint-btn" title="查看提示 (Hint)">
+        <i class="fas fa-lightbulb text-3xl"></i>
+    </button>
+
+    <script>
+        // Global State
+        let score = 0;
+        let startTime = Date.now();
+        let wrongAttempts = [];
+        let completedQuestions = new Set();
+        const totalQuestions = 15;
+
+        // Dictionary Data (Used for Hint and Validation)
+        const dictionary = [
+            { word: "砍伐", py: "kǎn fá", en: "cut down", ex: "人类大肆砍伐森林。" },
+            { word: "平衡", py: "píng héng", en: "balance", ex: "我们必须保持生态平衡。" },
+            { word: "盎然", py: "àng rán", en: "abundant / full of", ex: "春天到了，到处生机盎然。" },
+            { word: "珍稀", py: "zhēn xī", en: "rare and precious", ex: "大熊猫是中国的珍稀动物。" },
+            { word: "栖息", py: "qī xī", en: "inhabit / perch", ex: "鸟儿在树上栖息。" },
+            { word: "勿", py: "wù", en: "do not", ex: "请勿在此吸烟。" },
+            { word: "牢记", py: "láo jì", en: "keep firmly in mind", ex: "我们要牢记历史教训。" },
+            { word: "惩罚", py: "chéng fá", en: "punish / penalty", ex: "破坏环境最终会受到大自然的惩罚。" },
+            { word: "涌", py: "yǒng", en: "surge / pour", ex: "游客大量涌入这座城市。" },
+            { word: "繁殖", py: "fán zhí", en: "breed / reproduce", ex: "这种昆虫繁殖得非常快。" },
+            { word: "酿", py: "niàng", en: "brew / lead to", ex: "他的疏忽酿成了大祸。" },
+            { word: "饲料", py: "sì liào", en: "feed / forage", ex: "农场主购买了大量牛羊饲料。" },
+            { word: "佳肴", py: "jiā yáo", en: "delicacy", ex: "桌上摆满了美味佳肴。" },
+            { word: "啃", py: "kěn", en: "gnaw / nibble", ex: "兔子正在啃胡萝卜。" },
+            { word: "入侵", py: "rù qīn", en: "invade", ex: "防范外来物种入侵非常重要。" }
+        ];
+
+        // Toggles
+        let showPinyin = false;
+        let showEn = false;
+
+        document.getElementById('toggle-pinyin').addEventListener('click', () => {
+            showPinyin = !showPinyin;
+            document.querySelectorAll('.pinyin-line').forEach(el => {
+                showPinyin ? el.classList.remove('hidden-content') : el.classList.add('hidden-content');
+            });
+        });
+
+        document.getElementById('toggle-en').addEventListener('click', () => {
+            showEn = !showEn;
+            document.querySelectorAll('.en-line').forEach(el => {
+                showEn ? el.classList.remove('hidden-content') : el.classList.add('hidden-content');
+            });
+        });
+
+        // Hint System
+        document.getElementById('hint-btn').addEventListener('click', () => {
+            // Shuffle the dictionary for the hint
+            let shuffled = [...dictionary].sort(() => Math.random() - 0.5);
+            
+            let htmlContent = '<div class="text-left text-sm max-h-96 overflow-y-auto p-2">';
+            shuffled.forEach(item => {
+                htmlContent += `
+                    <div class="mb-4 bg-gray-50 p-3 rounded-lg border-l-4 border-yellow-400">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl font-bold text-gray-800">${item.word}</span>
+                            <span class="text-blue-600 font-medium">${item.py}</span>
+                        </div>
+                        <div class="text-gray-600 mt-1"><i class="fas fa-language mr-1"></i> ${item.en}</div>
+                        <div class="text-gray-500 mt-1 italic"><i class="fas fa-quote-left mr-1 text-xs"></i> ${item.ex}</div>
+                    </div>
+                `;
+            });
+            htmlContent += '</div>';
+
+            Swal.fire({
+                title: '备选词语 (Vocabulary List)',
+                html: htmlContent,
+                width: '600px',
+                confirmButtonText: '关闭 (Close)',
+                confirmButtonColor: '#f59e0b'
+            });
+        });
+
+        // Input Handling
+        const inputs = document.querySelectorAll('.input-box');
+        inputs.forEach(input => {
+            input.addEventListener('change', handleInput);
+            input.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') handleInput.call(this);
+            });
+        });
+
+        function handleInput() {
+            const val = this.value.trim();
+            const correctAns = this.dataset.ans;
+            const qId = this.id;
+
+            if (!val) return;
+
+            if (val === correctAns) {
+                // Correct Answer
+                if (!completedQuestions.has(qId)) {
+                    score++;
+                    completedQuestions.add(qId);
+                    document.getElementById('score-display').innerText = score;
+                }
+                
+                this.classList.remove('incorrect');
+                this.classList.add('correct');
+                
+                // Fire Confetti
+                confetti({
+                    particleCount: 50,
+                    spread: 60,
+                    origin: { y: 0.8 },
+                    colors: ['#4ade80', '#fbbf24', '#60a5fa']
+                });
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '答对了，你真棒！',
+                    text: `✅ ${correctAns}`,
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+
+                checkCompletion();
+
+            } else {
+                // Incorrect Answer
+                this.classList.add('incorrect');
+                
+                // Analyze error using pinyin-pro
+                const { pinyin } = pinyinPro;
+                const userPinyin = pinyin(val);
+                const correctItem = dictionary.find(d => d.word === correctAns);
+                
+                let errorMsg = `<div class="text-lg">你写了: <span class="text-red-500 font-bold">${val}</span> (${userPinyin})</div>`;
+                errorMsg += `<div class="text-lg mt-2 text-gray-700">这个词不太合适哦！</div>`;
+                errorMsg += `<div class="text-md mt-4 p-3 bg-blue-50 rounded-lg text-blue-700 border border-blue-200 text-left"><i class="fas fa-lightbulb text-yellow-500 mr-2 text-xl"></i><strong>小提示：</strong>请点击右下角的 <b>Hint 提示</b> 按钮，在备选词语列表中寻找正确的词语吧！</div>`;
+
+                // Log wrong attempt
+                wrongAttempts.push({
+                    question: qId,
+                    correct: correctAns,
+                    wrong: val
+                });
+
+                Swal.fire({
+                    icon: 'error',
+                    title: '不对哦~ 再试一次！',
+                    html: errorMsg,
+                    confirmButtonText: '再试一次',
+                    confirmButtonColor: '#ef4444'
+                }).then(() => {
+                    this.value = ''; // clear for retry
+                    this.focus();
+                    this.classList.remove('incorrect');
+                });
+            }
+        }
+
+        function checkCompletion() {
+            if (completedQuestions.size === totalQuestions) {
+                document.getElementById('submit-all').classList.remove('hidden');
+                document.getElementById('submit-all').classList.add('inline-flex');
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: '太棒了！全部完成！',
+                    text: '你已经填完了所有的空格，点击上方的"完成并提交"按钮查看报告吧！',
+                    confirmButtonColor: '#10b981'
+                });
+            }
+        }
+
+        // Text-to-Speech (Read Section)
+        function readSection(sectionId) {
+            if (!('speechSynthesis' in window)) {
+                Swal.fire('不支持', '您的浏览器不支持朗读功能。', 'warning');
+                return;
+            }
+
+            const section = document.getElementById(sectionId);
+            // Get all text lines, ignore pinyin and en-lines
+            const textLines = section.querySelectorAll('.text-line');
+            let fullText = "";
+            
+            textLines.forEach(line => {
+                // Clone the node to manipulate for reading
+                let clone = line.cloneNode(true);
+                // Replace input boxes with a short pause/placeholder
+                let inputs = clone.querySelectorAll('input');
+                inputs.forEach(input => {
+                    let val = input.value || "什么"; // if empty say "shen me", if filled say the word
+                    let span = document.createElement('span');
+                    span.innerText = val;
+                    input.parentNode.replaceChild(span, input);
+                });
+                fullText += clone.innerText + "。 ";
+            });
+
+            window.speechSynthesis.cancel(); // stop current
+            const utterance = new SpeechSynthesisUtterance(fullText);
+            utterance.lang = 'zh-CN';
+            utterance.rate = 0.9;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        // Final Submit & Download Report
+        document.getElementById('submit-all').addEventListener('click', () => {
+            const timeTakenSec = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(timeTakenSec / 60);
+            const seconds = timeTakenSec % 60;
+            const timeStr = `${minutes}分${seconds}秒`;
+
+            let finalHtml = `
+                <h3 class="text-2xl font-bold text-green-600 mb-2">满分完成！</h3>
+                <p class="text-lg">用时: ${timeStr}</p>
+                <div class="mt-4 max-h-48 overflow-y-auto text-left text-sm bg-gray-50 p-2 rounded">
+                    <strong>全部词汇复习:</strong><br/>
+                    ${dictionary.map(d => `${d.word} (${d.py}) - ${d.en}`).join('<br/>')}
+                </div>
+            `;
+
+            Swal.fire({
+                title: '成绩报告',
+                html: finalHtml,
+                icon: 'success',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-download"></i> 下载报告',
+                cancelButtonText: '关闭',
+                confirmButtonColor: '#10b981',
+                width: '600px'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    downloadReport(timeStr, timeTakenSec);
+                }
+            });
+        });
+
+        function downloadReport(timeStr, timeTakenSec) {
+            // Create CSV content
+            // Add BOM for Excel Chinese support
+            let csvContent = "\uFEFF"; 
+            csvContent += "报告生成时间,得分,总题数,用时(秒),用时(文本)\n";
+            csvContent += `"${new Date().toLocaleString()}",${score},${totalQuestions},${timeTakenSec},"${timeStr}"\n\n`;
+            
+            csvContent += "错题记录分析:\n";
+            csvContent += "题号,正确答案,学生输入的错误答案\n";
+            
+            if (wrongAttempts.length === 0) {
+                csvContent += "无,全对,无\n";
+            } else {
+                wrongAttempts.forEach(err => {
+                    csvContent += `${err.question},${err.correct},${err.wrong}\n`;
+                });
+            }
+
+            // Create Blob and Download
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "生态平衡练习报告.csv");
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+    </script>
+</body>
+</html>
